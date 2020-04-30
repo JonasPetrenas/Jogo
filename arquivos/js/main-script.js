@@ -1,21 +1,6 @@
-var request = $.ajax({
-    url: "TesteJog.php",
-    type: "POST",
-    data: "campo1=dado1",
-    dataType: "html"
-
-}).done(function (resposta) {
-    alert(resposta);
-
-}).fail(function (jqXHR, textStatus) {
-    console.log("Request failed: " + textStatus);
-
-}).always(function () {
-    console.log("completou");
-});
-
-//var
-var canvas, ctx, ALTURA, LARGURA, frames = 0;
+//======================== VARS =============================
+var canvas, ctx, ALTURA, LARGURA, frames = 0 , players = [];
+var socket;
 
 var arena = {
     cor: "#d3d3d3",
@@ -31,50 +16,11 @@ var arena = {
             ctx.fillStyle = this.cor;
             ctx.fillRect(0, 0, LARGURA, ALTURA);
         }
-    },
-    player = {
-        playerID: Math.random() * 100,
-        cor: "#ff0000",
-        playerX: 60,
-        playerY: 60,
-        playerAltura: 50,
-        playerLargura: 50,
+};
 
-        moves: function (direc) {
-            if (direc == 100) {
-                this.playerX += 20;
-            } else if (direc == 97) {
-                this.playerX -= 20;
-            } else if (direc == 115) {
-                this.playerY += 20;
-            } else if (direc == 119) {
-                this.playerY -= 20;
-            }
-        },
-        atualiza: function () {
-            if (this.playerX < 50) {
-                this.playerX = 50;
-            }
-            else if (this.playerX > LARGURA - this.playerLargura - 50) {
-                this.playerX = LARGURA - this.playerLargura - 50;
-            } else if (this.playerY < 50) {
-                this.playerY = 50;
-            }
-            else if (this.playerY > ALTURA - this.playerAltura - 50) {
-                this.playerY = ALTURA - this.playerAltura - 50;
-            }
-        },
-        desenha: function () {
-            ctx.fillStyle = this.cor;
-            ctx.fillRect(this.playerX, this.playerY, this.playerLargura, this.playerAltura);
-        }
-    };
-
-function clique(event) {
-    player.moves(event.keyCode);
-}
-
+//================ MAIN ===============================
 function main() {
+    socket = io('http://25.144.115.247:7070');
     ALTURA = window.innerHeight;
     LARGURA = window.innerWidth;
 
@@ -90,8 +36,22 @@ function main() {
     ctx = canvas.getContext("2d");
     document.body.appendChild(canvas);
     document.addEventListener("keypress", clique);
+    
+    //socket.emit('requestTela');
+    socket.on('enviaTela', function(dados){ //resposta
+        players = dados;
+        console.log(players);
+    });
 
     rodar();
+}
+//====================FUNÇÕES=======================
+function desenhaJogador(player) {
+            ctx.fillStyle = player.cor;
+            ctx.fillRect(player.x, player.y, 50,50);
+        }
+function clique(event) {
+    socket.emit('movePlayer', event.keyCode);
 }
 
 function rodar() {
@@ -102,14 +62,23 @@ function rodar() {
 }
 
 function atualiza() {
-    player.atualiza();
+    if(socket.connected == false)
+    {
+        players = [];
+    }
+    //player.atualiza();
     frames++;
+
 }
 
 function desenha() {
     paredes.desenha();
     arena.desenha();
-    player.desenha();
+    //----------DESENHA PLAYERS ---------
+    players.forEach( function (player){
+      desenhaJogador(player); 
+    });
+        
 }
-
+//=====================EXECUTA====================
 main();
